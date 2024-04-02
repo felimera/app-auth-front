@@ -3,6 +3,10 @@ import { FormBuilder, Validators } from '@angular/forms';
 
 import { ValidatorsService } from '../../../shared/service/validators.service';
 import * as customValidators from '../../../shared/validators/validators';
+import { AuthService } from '../../services/auth.service';
+import { Login } from '../../interfaces/login.interface';
+
+import Swal from 'sweetalert2'
 
 @Component({
   selector: 'app-login-page',
@@ -13,6 +17,7 @@ export class LoginPageComponent {
   private formBuilder = inject(FormBuilder);
 
   public validatorsService = inject(ValidatorsService);
+  public authService = inject(AuthService);
 
   public loginForm = this.formBuilder.group(
     {
@@ -29,11 +34,33 @@ export class LoginPageComponent {
     return this.validatorsService.getFieldError(this.loginForm, field);
   }
 
+  get currentLogin(): Login {
+    const login = this.loginForm.value as Login;
+    return login;
+  }
+
   public onSubmint(): void {
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       return;
     }
-    console.log('this.loginForm.value ', this.loginForm.value);
+
+    this.authService
+      .postLogin(this.currentLogin)
+      .subscribe({
+        next: ({ jwtToken }) => {
+          if (jwtToken) {
+            localStorage.setItem('token', jwtToken);
+            Swal.fire({
+              title: 'Login',
+              text: 'Welcome to our service.',
+              icon: 'success',
+              confirmButtonText: 'Done'
+            });
+            this.loginForm.reset();
+          }
+        },
+        error: res => console.log(res)
+      });
   }
 }
