@@ -3,6 +3,10 @@ import { FormBuilder, Validators } from '@angular/forms';
 
 import * as customValidators from '../../../shared/validators/validators';
 import { ValidatorsService } from '../../../shared/service/validators.service';
+import { AuthService } from '../../services/auth.service';
+import { User } from '../../interfaces';
+
+import Swal from 'sweetalert2'
 
 @Component({
   selector: 'app-register-page',
@@ -14,6 +18,7 @@ export class RegisterPageComponent {
   private formBuilder = inject(FormBuilder);
 
   public validatorsService = inject(ValidatorsService);
+  public authService = inject(AuthService);
 
   public userForm = this.formBuilder.group(
     {
@@ -35,12 +40,35 @@ export class RegisterPageComponent {
     return this.validatorsService.getFieldError(this.userForm, field);
   }
 
+  get currentUser(): User {
+    const user = this.userForm.value as User;
+    return user;
+  }
+
   public onSubmint() {
     if (this.userForm.invalid) {
       this.userForm.markAllAsTouched();
       return;
     }
 
-    console.log('this.userForm.value ', this.userForm.value);
+    this.authService
+      .createUserAll(this.currentUser)
+      .subscribe({
+        next: (resp) => {
+          if (resp) {
+            Swal.fire({
+              title: 'Signup',
+              text: `Creation of ${resp.userDto.nombres}' record was successes.`,
+              icon: 'success',
+              timer: 2500,
+              confirmButtonText: 'Done'
+            });
+            setTimeout(() => {
+              this.userForm.reset();
+              localStorage.setItem('token', resp.loginResponseDto.jwtToken);
+            }, 2500);
+          }
+        }
+      })
   }
 }
